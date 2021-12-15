@@ -6,7 +6,7 @@ from db import DB
 
 app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(minutes=30) # session will end after 30 minutes of inactivity (meaning no requests to server)
-app.secret_key = uuid.uuid4().hex
+app.secret_key = 'f1ae76998e124a25b76f18e03fc17d2a'
 app.session_cookie_name = 'my_session'
 api = Api(app)
 db = DB('neo4j+s://f83801e6.databases.neo4j.io:7687', 'neo4j', 'cbXX3B5HHot982851CHDFQAWy3Nc2-BeJOeERSHrId4')
