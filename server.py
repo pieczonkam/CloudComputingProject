@@ -1,7 +1,6 @@
 from flask import Flask, render_template, make_response, jsonify, request, session
 from flask_restful import Api, Resource
 from datetime import timedelta
-import uuid
 from db import DB
 
 app = Flask(__name__)
@@ -20,21 +19,47 @@ class User(Resource):
     def get(self, id): # get user's data
         try:
             id_int = int(id)
-            if id_int == -1:
+            if id_int == -1: # current user
                 if 'email' in session:
-                    return jsonify({'success': True, 'fname': session.get('fname'), 'lname': session.get('lname'), 'birth_date': session.get('birth_date'), 'email': session.get('email')})
-                else:
-                    return jsonify({'error': 'User not logged in'})
-            else:
-                query_string = '''MATCH (n:User) WHERE ID(n) = %i RETURN n.fname AS fname, n.lname AS lname, n.birth_date AS birth_date''' % (id_int)
+                    query_string = '''MATCH (n:User)-[r:IS_FRIEND]->(m:User) WHERE n.email = '%s' RETURN COUNT(r) AS count''' % (session.get('email'))
 
-                db.connect()
-                result = db.execute(query_string, with_response=True)
-                db.close()
-                
-                if result['success'] and len(result['response']) == 1: 
-                    return jsonify({'success': True, 'fname': result['response'][0]['fname'], 'lname': result['response'][0]['lname'], 'birth_date': result['response'][0]['birth_date']})
+                    db.connect()
+                    result = db.execute(query_string, with_response=True)
+                    db.close()
+
+                    if result['success'] and len(result['response']) == 1:
+                        return jsonify({'success': True, 'fname': session.get('fname'), 'lname': session.get('lname'), 'birth_date': session.get('birth_date'), 'email': session.get('email'), 'friends_count': result['response'][0]['count']})
+                    else:
+                        return jsonify({'success': False})
                 else:
+                    return jsonify({'not_logged_in': True})
+            else:
+                if 'email' in session:
+                    query_string_1 = '''MATCH (n:User) WHERE ID(n) = %i RETURN n.fname AS fname, n.lname AS lname, n.birth_date AS birth_date''' % (id_int)
+                    query_string_2 = '''MATCH (n:User)-[r:IS_FRIEND]->(m:User) WHERE ID(n) = %i RETURN COUNT(r) AS count''' % (id_int)
+                    query_string_3 = '''MATCH (n:User), (m:User) WHERE n.email = '%s' AND ID(m) = %i RETURN EXISTS( (n)-[:IS_FRIEND]->(m) ) AS is_friend''' % (session.get('email'), id_int)
+
+                    db.connect()
+                    result_1 = db.execute(query_string_1, with_response=True)
+                    result_2 = db.execute(query_string_2, with_response=True)
+                    result_3 = db.execute(query_string_3, with_response=True)
+                    db.close()
+
+                    if result_1['success'] and result_2['success'] and result_3['success'] and len(result_1['response']) == 1 and len(result_2['response']) == 1 and len(result_3['response']) == 1:
+                        return jsonify({'success': True, 'logged_in': True, 'is_friend': result_3['response'][0]['is_friend'], 'fname': result_1['response'][0]['fname'], 'lname': result_1['response'][0]['lname'], 'birth_date': result_1['response'][0]['birth_date'], 'friends_count': result_2['response'][0]['count']})
+                    else:
+                        return jsonify({'success': False})
+                else:
+                    query_string_1 = '''MATCH (n:User) WHERE ID(n) = %i RETURN n.fname AS fname, n.lname AS lname, n.birth_date AS birth_date''' % (id_int)
+                    query_string_2 = '''MATCH (n:User)-[r:IS_FRIEND]->(m:User) WHERE ID(n) = %i RETURN COUNT(r) AS count''' % (id_int)
+
+                    db.connect()
+                    result_1 = db.execute(query_string_1, with_response=True)
+                    result_2 = db.execute(query_string_2, with_response=True)
+                    db.close()
+
+                    if result_1['success'] and result_2['success'] and len(result_1['response']) == 1 and len(result_2['response']) == 1:
+                        return jsonify({'success': True, 'fname': result_1['response'][0]['fname'], 'lname': result_1['response'][0]['lname'], 'birth_date': result_1['response'][0]['birth_date'], 'friends_count': result_2['response'][0]['count']})
                     return jsonify({'success': False})
         except Exception:
             return jsonify({'error': 'Bad request'})
@@ -51,7 +76,7 @@ class User(Resource):
                 
                 return jsonify({'success': result['success']})
             else:
-                return jsonify({'error': 'User already logged in'})
+                return jsonify({'logged_in': True})
         else:
             return jsonify({'error': 'Bad request'})
 
@@ -75,7 +100,7 @@ class User(Resource):
                     return jsonify({'success': True})
                 return jsonify({'success': False})
             else:
-                return jsonify({'error': 'User not logged in'})
+                return jsonify({'not_logged_in': True})
         else:
             return jsonify({'error': 'Bad request'})
 
@@ -97,7 +122,10 @@ class Users(Resource):
         db.close()
 
         if result['success']:
-            response = {'success': True}
+            if 'email' in session:
+                response = {'success': True, 'logged_in': True}
+            else:
+                response = {'success': True}
             for user in result['response']:
                 response[str(user['id'])] = {'fname': user['fname'], 'lname': user['lname']}
             return jsonify(response)
@@ -105,21 +133,6 @@ class Users(Resource):
             return jsonify({'success': False})
 
 class Friend(Resource):
-    def get(self, id):
-        if 'email' in session:
-            query_string = '''MATCH (n:User), (m:User) WHERE n.email = '%s' AND ID(m) = %i RETURN EXISTS( (n)-[:IS_FRIEND]->(m) ) AS is_friend''' % (session.get('email'), id)
-
-            db.connect()
-            result = db.execute(query_string, with_response=True)
-            db.close()
-
-            if result['success'] and len(result['response']) == 1:
-                return jsonify({'success': True, 'is_friend': result['response'][0]['is_friend']})
-            else:
-                return jsonify({'success': False})
-        else:
-            return jsonify({'error': 'User not logged in'})
-
     def post(self, id):
         if 'email' in session:
             query_string = '''MATCH (n:User), (m:User) WHERE n.email = '%s' AND ID(m) = %i MERGE (n)-[r:IS_FRIEND]->(m)''' % (session.get('email'), id)
@@ -130,7 +143,7 @@ class Friend(Resource):
 
             return jsonify({'success': result['success']})
         else:
-            return jsonify({'error': 'User not logged in'})
+            return jsonify({'not_logged_in': True})
 
     def delete(self, id):
         if 'email' in session:
@@ -142,59 +155,29 @@ class Friend(Resource):
 
             return jsonify({'success': result['success']})
         else:
-            return jsonify({'error': 'User not logged in'})
+            return jsonify({'not_logged_in': True})
 
 class Friends(Resource):
-    def get(self, type, id):
-        try:
-            id_int = int(id)
-            if id_int == -1:
-                if 'email' in session:
-                    if type == 'count':
-                        query_string = '''MATCH (n:User)-[r:IS_FRIEND]->(m:User) WHERE n.email = '%s' RETURN COUNT(r) AS count''' % (session.get('email'))
+    def get(self, type):
+        if 'email' in session:
+            if type == 'profile':
+                query_string = '''MATCH (n:User)-[r:IS_FRIEND]->(m:User) WHERE n.email = '%s' RETURN ID(m) AS id, m.fname AS fname, m.lname AS lname''' % (session.get('email'))
+                
+                db.connect()
+                result = db.execute(query_string, with_response=True)
+                db.close()
 
-                        db.connect()
-                        result = db.execute(query_string, with_response=True)
-                        db.close()
-
-                        if result['success'] and len(result['response']) == 1:
-                            return jsonify({'success': True, 'friends_count': result['response'][0]['count']})
-                        else:
-                            return jsonify({'success': False})
-                    elif type == 'profile':
-                        query_string = '''MATCH (n:User)-[r:IS_FRIEND]->(m:User) WHERE n.email = '%s' RETURN ID(m) AS id, m.fname AS fname, m.lname AS lname''' % (session.get('email'))
-                        
-                        db.connect()
-                        result = db.execute(query_string, with_response=True)
-                        db.close()
-
-                        if result['success']:
-                            response = {'success': True}
-                            for user in result['response']:
-                                response[str(user['id'])] = {'fname': user['fname'], 'lname': user['lname']}
-                            return jsonify(response)
-                        else:
-                            return jsonify({'success': False})
-                    else:
-                        return jsonify({'error': 'Bad request'})
+                if result['success']:
+                    response = {'success': True}
+                    for user in result['response']:
+                        response[str(user['id'])] = {'fname': user['fname'], 'lname': user['lname']}
+                    return jsonify(response)
                 else:
-                    return jsonify({'error': 'User not logged in'})
+                    return jsonify({'success': False})
             else:
-                if type == 'count':
-                    query_string = '''MATCH (n:User)-[r:IS_FRIEND]->(m:User) WHERE ID(n) = %i RETURN COUNT(r) AS count''' % (id_int)
-
-                    db.connect()
-                    result = db.execute(query_string, with_response=True)
-                    db.close()
-
-                    if result['success'] and len(result['response']) == 1:
-                        return jsonify({'success': True, 'friends_count': result['response'][0]['count']})
-                    else:
-                        return jsonify({'success': False})
-                else:
-                    return jsonify({'error': 'Bad request'})
-        except Exception:
-            return jsonify({'error': 'Bad request'})
+                return jsonify({'error': 'Bad request'})
+        else:
+            return jsonify({'not_logged_in': True})
 
 class Login(Resource):
     def get(self): # returns info is user is logged in
@@ -222,7 +205,7 @@ class Login(Resource):
             else:
                 return jsonify({'success': False})
         else:
-            return jsonify({'error': 'User already logged in'})
+            return jsonify({'logged_in': True})
 
 class Logout(Resource):
     def get(self):
@@ -232,9 +215,10 @@ api.add_resource(HomePage, '/')
 api.add_resource(User, '/user/<string:id>')
 api.add_resource(Users, '/users/<string:name>')
 api.add_resource(Friend, '/friend/<int:id>')
-api.add_resource(Friends, '/friends/<string:type>/<string:id>')
+api.add_resource(Friends, '/friends/<string:type>')
 api.add_resource(Login, '/login')
 api.add_resource(Logout, '/logout')
 
+
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

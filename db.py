@@ -22,8 +22,7 @@ class DB:
                     else:
                         session.run(query)
                         result['success'] = True
-        except Exception as e:
-            print(e)
+        except Exception:
             result['success'] = False
         
         return result
