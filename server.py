@@ -219,7 +219,7 @@ class Friends(Resource):
             return jsonify({'not_logged_in': True})
 
 class Login(Resource):
-    def get(self): # returns info is user is logged in
+    def get(self): # returns info if user is logged in
         if 'email' in session:
             return jsonify({'logged_in': True})
         return jsonify({'logged_in': False})
