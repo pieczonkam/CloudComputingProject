@@ -1,9 +1,11 @@
 /*jshint esversion: 6 */
 function showCurrentPage() {
+	'use strict';
+
 	var current_page = sessionStorage.getItem('current_page');
-	if (!current_page)
+	if (!current_page) {
 		showHomePage();
-	else
+	} else {
 		switch (current_page) {
 			case 'login':
 				showLoginForm();
@@ -12,37 +14,38 @@ function showCurrentPage() {
 				showRegisterForm();
 				break;
 			case 'profile':
-                var user_id = sessionStorage.getItem('user_id');
-                if (user_id)
-				    showProfile(parseInt(user_id));
-                else showProfile(-1);
+				var user_id = sessionStorage.getItem('user_id');
+				if (user_id)
+					showProfile(parseInt(user_id));
+				else showProfile(-1);
 				break;
-            case 'edit_user':
-                showEditUserForm();
-                break;
-            case 'found_users':
-                showFoundUsers();
-                break;
-            case 'friends':
-                showFriends();
-                break;
+			case 'edit_user':
+				showEditUserForm();
+				break;
+			case 'found_users':
+				showFoundUsers();
+				break;
+			case 'friends':
+				showFriends();
+				break;
 			case 'home':
 			default:
 				showHomePage();
 		}
+	}
 }
 
 function showHomePage() {
 	'use strict';
 
-    sessionStorage.setItem('return_from_profile_dest', 'showHomePage()')
+	sessionStorage.setItem('return_from_profile_dest', 'showHomePage()');
 	sessionStorage.setItem('current_page', 'home');
-    showSpinner();
+	showSpinner();
 	sendRequest('/friends/suggestions', 'GET').then(function(result) {
 		var response = JSON.parse(result);
 
 		if (response.not_logged_in) {
-            document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+			document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                     <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showLoginForm()"><i class="fas fa-sign-in-alt"></i>&nbsp;&nbsp;Zaloguj się</a>
                                                                 </li>
                                                                 <li class="nav-item me-2">
@@ -52,10 +55,10 @@ function showHomePage() {
                                                                 <h1 class="text-center">Witaj na MeetUp!<br><br/>Stronie, która pozwoli Ci zawrzeć wiele nowych znajomości!</h1>
                                                             </div>`;
 
-            hideSpinner();
-        } else {
-            if (response.success) {
-                document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+			hideSpinner();
+		} else {
+			if (response.success) {
+				document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                         <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showProfile(-1)"><i class="fas fa-user"></i>&nbsp;&nbsp;Profil</a>
                                                                     </li>
                                                                     <li class="nav-item me-2">
@@ -65,26 +68,26 @@ function showHomePage() {
                                                                         <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>&nbsp;&nbsp;Wyloguj się</a>
                                                                     </li>`;
 
-                var content = `<div class="container bg-dark shadow text-white py-5 my-5">
+				var content = `<div class="container bg-dark shadow text-white py-5 my-5">
                                     <h2 class="pb-4 fw-bold text-uppercase text-center">Proponowani znajomi</h2>`;
-                for (const el in response) {
-                    if (el != 'success') {
-                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el]['id']})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
-                    }
-                }
-                content += `</div>`;
-                document.getElementById('content').innerHTML = content;
+				for (const el in response) {
+					if (el != 'success') {
+						content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el].id})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el].fname} ${response[el].lname}</h3></a>`;
+					}
+				}
+				content += `</div>`;
+				document.getElementById('content').innerHTML = content;
 
-                hideSpinner();
-            } else {
-                throw 'Error';
-            }
-        }
+				hideSpinner();
+			} else {
+				throw 'Error';
+			}
+		}
 	}).catch(function() {
 		document.getElementById('content').innerHTML = `<div class="container bg-dark shadow p-5 mt-5 mb-5">
                                                             <h1 class="text-center text-danger">Coś poszło nie tak! Proszę spróbować ponownie</h1>
                                                         </div>`;
-        hideSpinner();
+		hideSpinner();
 	});
 }
 
@@ -97,8 +100,7 @@ function showLoginForm() {
 
 		if (response.logged_in) {
 			showHomePage();
-        }
-		else {
+		} else {
 			document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                     <a class="nav-link active disabled" aria-current="page" href="javascript:void(0)"><i class="fas fa-sign-in-alt"></i>&nbsp;&nbsp;Zaloguj się</a>
                                                                 </li>
@@ -143,8 +145,7 @@ function showRegisterForm() {
 
 		if (response.logged_in) {
 			showHomePage();
-        }
-		else {
+		} else {
 			document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                     <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showLoginForm()"><i class="fas fa-sign-in-alt"></i>&nbsp;&nbsp;Zaloguj się</a>
                                                                 </li>
@@ -200,22 +201,22 @@ function showRegisterForm() {
 function showProfile(id) {
 	'use strict';
 
-    var return_from_profile_dest = sessionStorage.getItem('return_from_profile_dest');
-    if (!return_from_profile_dest)
-        return_from_profile_dest = 'showHomePage()';
-    sessionStorage.setItem('user_id', String(id));
+	var return_from_profile_dest = sessionStorage.getItem('return_from_profile_dest');
+	if (!return_from_profile_dest)
+		return_from_profile_dest = 'showHomePage()';
+	sessionStorage.setItem('user_id', String(id));
 	sessionStorage.setItem('current_page', 'profile');
-    if (id === -1) {
-        showSpinner();
-        sendRequest('/user/-1', 'GET').then(function(result) {
-            var response = JSON.parse(result);
+	if (id === -1) {
+		showSpinner();
+		sendRequest('/user/-1', 'GET').then(function(result) {
+			var response = JSON.parse(result);
 
-            if (response.not_logged_in) {
-                hideSpinner();
-                showHomePage();
-            } else {
-                if (response.success) {
-                    document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+			if (response.not_logged_in) {
+				hideSpinner();
+				showHomePage();
+			} else {
+				if (response.success) {
+					document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                             <a class="nav-link active disabled" aria-current="page" href="javascript:void(0)"><i class="fas fa-user"></i>&nbsp;&nbsp;Profil</a>
                                                                         </li>
                                                                         <li class="nav-item me-2">
@@ -224,36 +225,35 @@ function showProfile(id) {
                                                                         <li class="nav-item me-2">
                                                                             <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>&nbsp;&nbsp;Wyloguj się</a>
                                                                         </li>`;
-                    document.getElementById('content').innerHTML = `<div class="container bg-dark shadow text-white p-5 mt-5 mb-5">
+					document.getElementById('content').innerHTML = `<div class="container bg-dark shadow text-white p-5 mt-5 mb-5">
                                                                         <h2 class="pb-3">${response.fname} ${response.lname}&nbsp;&nbsp;<a class="link-secondary" href="javascript:void(0)" onclick="showEditUserForm()" title="Edytuj"><i class="fas fa-edit"></i></a></h2>
                                                                         <p class="ms-3"><strong>Email:&nbsp;&nbsp;</strong>${response.email}</p>
                                                                         <p class="ms-3"><strong>Data urodzenia:&nbsp;&nbsp;</strong>${response.birth_date}</p>
                                                                         <p class="ms-3"><strong>Znajomi:&nbsp;&nbsp;</strong>${response.friends_count}</p>
                                                                     </div>`;
-                    hideSpinner();          
-                }
-                else {
-                    hideSpinner();
-                    showHomePage();
-                }
-            }
-        }).catch(function() {
-            hideSpinner();
-            showHomePage();
-        });   
-    } else {
-        showSpinner();
-        sendRequest('/user/' + String(id), 'GET').then(function(result) {
-            var response = JSON.parse(result);
+					hideSpinner();
+				} else {
+					hideSpinner();
+					showHomePage();
+				}
+			}
+		}).catch(function() {
+			hideSpinner();
+			showHomePage();
+		});
+	} else {
+		showSpinner();
+		sendRequest('/user/' + String(id), 'GET').then(function(result) {
+			var response = JSON.parse(result);
 
-            if (response.success) {
-                if (response.logged_in) {
-                    var friend_action = `<a class="link-success" href="javascript:void(0)" onclick="addFriend(${id})"><i class="fas fa-user-plus"></i>&nbsp;&nbsp;Dodaj do znajomych</a>`;
-                    if (response.is_friend) {
-                        friend_action = `<a class="link-danger" href="javascript:void(0)" onclick="removeFriend(${id})"><i class="fas fa-user-minus"></i>&nbsp;&nbsp;Usuń ze znajomych</a>`;
-                    }
+			if (response.success) {
+				if (response.logged_in) {
+					var friend_action = `<a class="link-success" href="javascript:void(0)" onclick="addFriend(${id})"><i class="fas fa-user-plus"></i>&nbsp;&nbsp;Dodaj do znajomych</a>`;
+					if (response.is_friend) {
+						friend_action = `<a class="link-danger" href="javascript:void(0)" onclick="removeFriend(${id})"><i class="fas fa-user-minus"></i>&nbsp;&nbsp;Usuń ze znajomych</a>`;
+					}
 
-                    document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+					document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                             <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showProfile(-1)"><i class="fas fa-user"></i>&nbsp;&nbsp;Profil</a>
                                                                         </li>
                                                                         <li class="nav-item me-2">
@@ -262,54 +262,54 @@ function showProfile(id) {
                                                                         <li class="nav-item me-2">
                                                                             <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>&nbsp;&nbsp;Wyloguj się</a>
                                                                         </li>`;
-                    document.getElementById('content').innerHTML = `<div class="container bg-dark shadow text-white p-5 mt-5 mb-5">
+					document.getElementById('content').innerHTML = `<div class="container bg-dark shadow text-white p-5 mt-5 mb-5">
                                                                         <h2 class="pb-3">${response.fname} ${response.lname}</h2>
                                                                         <p class="ms-3"><strong>Data urodzenia:&nbsp;&nbsp;</strong>${response.birth_date}</p>
                                                                         <p class="ms-3"><strong>Znajomi:&nbsp;&nbsp;</strong>${response.friends_count}</p>
                                                                         <p class="mt-3" style="padding-bottom: 0;">${friend_action}</p>
                                                                         <p class="mt-3" style="padding-bottom: 0;"><a class="link-secondary" href="javascript:void(0)" onclick="${return_from_profile_dest}"><i class="fas fa-arrow-left"></i>&nbsp;&nbsp;Powrót</a></p>
                                                                     </div>`;
-                    hideSpinner();
-                } else {
-                    document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+					hideSpinner();
+				} else {
+					document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                             <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showLoginForm()"><i class="fas fa-sign-in-alt"></i>&nbsp;&nbsp;Zaloguj się</a>
                                                                         </li>
                                                                         <li class="nav-item me-2">
                                                                             <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showRegisterForm()"><i class="fas fa-user-plus"></i>&nbsp;&nbsp;Zarejestruj się</a>
                                                                         </li>`;
-                    document.getElementById('content').innerHTML = `<div class="container bg-dark shadow text-white p-5 mt-5 mb-5">
+					document.getElementById('content').innerHTML = `<div class="container bg-dark shadow text-white p-5 mt-5 mb-5">
                                                                         <h2 class="pb-3">${response.fname} ${response.lname}</h2>
                                                                         <p class="ms-3"><strong>Data urodzenia:&nbsp;&nbsp;</strong>${response.birth_date}</p>
                                                                         <p class="ms-3"><strong>Znajomi:&nbsp;&nbsp;</strong>${response.friends_count}</p>
                                                                         <p class="mt-3" style="padding-bottom: 0;"><a class="link-secondary" href="javascript:void(0)" onclick="showFoundUsers()"><i class="fas fa-arrow-left"></i>&nbsp;&nbsp;Powrót</a></p>
                                                                     </div>`;
-                    hideSpinner();
-                }
-            } else {
-                hideSpinner();
-                showHomePage();
-            }
-        }).catch(function() {
-            hideSpinner();
-            showHomePage();
-        });
-    }
+					hideSpinner();
+				}
+			} else {
+				hideSpinner();
+				showHomePage();
+			}
+		}).catch(function() {
+			hideSpinner();
+			showHomePage();
+		});
+	}
 }
 
 function showEditUserForm() {
-    'use strict';
+	'use strict';
 
 	sessionStorage.setItem('current_page', 'edit_user');
-    showSpinner();
-    sendRequest('/user/-1', 'GET').then(function(result) {
-        var response = JSON.parse(result);
+	showSpinner();
+	sendRequest('/user/-1', 'GET').then(function(result) {
+		var response = JSON.parse(result);
 
-        if (response.not_logged_in) {
-            hideSpinner();
-            showHomePage();
-        } else {
-            if (response.success) {
-                document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+		if (response.not_logged_in) {
+			hideSpinner();
+			showHomePage();
+		} else {
+			if (response.success) {
+				document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                         <a class="nav-link active disabled" aria-current="page" href="javascript:void(0)"><i class="fas fa-user"></i>&nbsp;&nbsp;Profil</a>
                                                                     </li>
                                                                     <li class="nav-item me-2">
@@ -318,7 +318,7 @@ function showEditUserForm() {
                                                                     <li class="nav-item me-2">
                                                                         <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>&nbsp;&nbsp;Wyloguj się</a>
                                                                     </li>`;
-                document.getElementById('content').innerHTML = `<div id="edit-user-form" class="container py-5">
+				document.getElementById('content').innerHTML = `<div id="edit-user-form" class="container py-5">
                                                                     <div class="row d-flex justify-content-center align-items-center">
                                                                         <div class="col-12 col-md-8 col-lg-6 col-xl-5">
                                                                             <div class="card bg-dark text-white">
@@ -357,49 +357,48 @@ function showEditUserForm() {
                                                                         </div>
                                                                     </div>
                                                                 </div>`;
-                hideSpinner();
-            }
-            else {
-                hideSpinner();
-                showHomePage();
-            }
-        }
-    }).catch(function() {
-        hideSpinner();
-        showHomePage();
-    });
+				hideSpinner();
+			} else {
+				hideSpinner();
+				showHomePage();
+			}
+		}
+	}).catch(function() {
+		hideSpinner();
+		showHomePage();
+	});
 }
 
 function showFoundUsers() {
-    'use strict';
+	'use strict';
 
-    sessionStorage.setItem('return_from_profile_dest', 'showFoundUsers()');
+	sessionStorage.setItem('return_from_profile_dest', 'showFoundUsers()');
 	sessionStorage.setItem('current_page', 'found_users');
-    var name_str = String(document.getElementsByName('find-users')[0].value);
-    if (name_str.replace(/\s/g, '') === '')
-        name_str = '*';
+	var name_str = String(document.getElementsByName('find-users')[0].value);
+	if (name_str.replace(/\s/g, '') === '')
+		name_str = '*';
 	showSpinner();
-    sendRequest('/users/' + name_str, 'GET').then(function(result) {
-        var response = JSON.parse(result);
+	sendRequest('/users/' + name_str, 'GET').then(function(result) {
+		var response = JSON.parse(result);
 
-        if (response.success) {
-            var nmb_of_records = 0;
-            var nmb_of_records_text = '';
+		if (response.success) {
+			var nmb_of_records = 0;
+			var nmb_of_records_text = '';
+			var content = '';
 
-            if (response.logged_in) {
-                for (const el in response) {
-                    if (el != 'success' && el != 'logged_in') {
-                        nmb_of_records++;
-                    }
-                }
-                if (nmb_of_records === 1) {
-                    nmb_of_records_text = 'wynik';
-                }
-                else {
-                    nmb_of_records_text = 'wyniki/-ów';
-                }
+			if (response.logged_in) {
+				for (const el in response) {
+					if (el != 'success' && el != 'logged_in') {
+						nmb_of_records++;
+					}
+				}
+				if (nmb_of_records === 1) {
+					nmb_of_records_text = 'wynik';
+				} else {
+					nmb_of_records_text = 'wyniki/-ów';
+				}
 
-                document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+				document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                         <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showProfile(-1)"><i class="fas fa-user"></i>&nbsp;&nbsp;Profil</a>
                                                                     </li>
                                                                     <li class="nav-item me-2">
@@ -408,83 +407,74 @@ function showFoundUsers() {
                                                                     <li class="nav-item me-2">
                                                                         <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>&nbsp;&nbsp;Wyloguj się</a>
                                                                     </li>`;
-                
-                var content = `<div class="container bg-dark shadow text-white py-5 my-5">
+
+				content = `<div class="container bg-dark shadow text-white py-5 my-5">
                                     <h2 class="pb-4 fw-bold text-uppercase text-center">Znaleziono ${nmb_of_records} ${nmb_of_records_text} dla zapytania <i>${name_str}</i></h2>`;
-                for (const el in response) {
-                    if (el != 'success' && el != 'logged_in') {
-                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el]['id']})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
-                    }
-                }
-                content += `</div>`;
-                document.getElementById('content').innerHTML = content;
+				for (const el in response) {
+					if (el != 'success' && el != 'logged_in') {
+						content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el].id})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el].fname} ${response[el].lname}</h3></a>`;
+					}
+				}
+				content += `</div>`;
+				document.getElementById('content').innerHTML = content;
 
-                hideSpinner();
-            } else {
-                for (const el in response) {
-                    if (el != 'success') {
-                        nmb_of_records++;
-                    }
-                }
-                if (nmb_of_records === 1) {
-                    nmb_of_records_text = 'wynik';
-                }
-                else {
-                    switch(nmb_of_records % 10) {
-                        case 2:
-                        case 3:
-                        case 4:
-                            nmb_of_records_text = 'wyniki';
-                            break;
-                        default:
-                            nmb_of_records_text = 'wyników';
-                    }
-                }
+				hideSpinner();
+			} else {
+				for (const el in response) {
+					if (el != 'success') {
+						nmb_of_records++;
+					}
+				}
+				if (nmb_of_records === 1) {
+					nmb_of_records_text = 'wynik';
+				} else {
+					nmb_of_records_text = 'wyniki/-ów';
+				}
 
-                document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+				document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                         <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showLoginForm()"><i class="fas fa-sign-in-alt"></i>&nbsp;&nbsp;Zaloguj się</a>
                                                                     </li>
                                                                     <li class="nav-item me-2">
                                                                         <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showRegisterForm()"><i class="fas fa-user-plus"></i>&nbsp;&nbsp;Zarejestruj się</a>
                                                                     </li>`;
 
-                var content = `<div class="container bg-dark shadow text-white py-5 my-5">
+				content = `<div class="container bg-dark shadow text-white py-5 my-5">
                                     <h2 class="pb-4 fw-bold text-uppercase text-center">Znaleziono ${nmb_of_records} ${nmb_of_records_text} dla zapytania <i>${name_str}</i></h2>`;
-                for (const el in response) {
-                    if (el != 'success') {
-                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el]['id']})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
-                    }
-                }
-                content += `</div>`;
-                document.getElementById('content').innerHTML = content;
-                
-                hideSpinner();
-            }
-        } else {
-            hideSpinner();
-            showHomePage();
-        }
-    }).catch(function() {
-        hideSpinner();
-        showHomePage();
-    });
+				for (const el in response) {
+					if (el != 'success') {
+						content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el].id})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el].fname} ${response[el].lname}</h3></a>`;
+					}
+				}
+				content += `</div>`;
+				document.getElementById('content').innerHTML = content;
+
+				hideSpinner();
+			}
+		} else {
+			hideSpinner();
+			showHomePage();
+		}
+	}).catch(function() {
+		hideSpinner();
+		showHomePage();
+	});
 }
 
 function showFriends() {
-    'use strict';
+	'use strict';
 
-    sessionStorage.setItem('return_from_profile_dest', 'showFriends()');
+	sessionStorage.setItem('return_from_profile_dest', 'showFriends()');
 	sessionStorage.setItem('current_page', 'friends');
-    showSpinner();
-    sendRequest('/friends/profile', 'GET').then(function(result) {
-        var response = JSON.parse(result);
+	showSpinner();
+	sendRequest('/friends/profile', 'GET').then(function(result) {
+		var response = JSON.parse(result);
 
-        if (response.not_logged_in) {
-            hideSpinner();
-            showHomePage();
-        } else {
-            if (response.success) {
-                document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+		if (response.not_logged_in) {
+			hideSpinner();
+			showHomePage();
+		} else {
+			if (response.success) {
+				document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                             <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showProfile(-1)"><i class="fas fa-user"></i>&nbsp;&nbsp;Profil</a>
                                                                         </li>
                                                                         <li class="nav-item me-2">
@@ -493,29 +483,29 @@ function showFriends() {
                                                                         <li class="nav-item me-2">
                                                                             <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>&nbsp;&nbsp;Wyloguj się</a>
                                                                         </li>`;
-                var content = `<div class="container bg-dark shadow text-white py-5 my-5">
+				var content = `<div class="container bg-dark shadow text-white py-5 my-5">
                                     <h2 class="pb-4 fw-bold text-uppercase text-center">Lista Twoich znajomych</h2>`;
-                let i = 0;
-                for (const el in response) {
-                    if (el !== 'success') {
-                        i++;
-                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el]['id']})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
-                    }
-                }
-                if (i === 0) {
-                    content += `<h3 class="py-3 text-center">Nie masz jeszcze żadnych znajomych</h3>`;
-                }
-                content += `</div>`;
-                document.getElementById('content').innerHTML = content;
+				let i = 0;
+				for (const el in response) {
+					if (el !== 'success') {
+						i++;
+						content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el].id})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el].fname} ${response[el].lname}</h3></a>`;
+					}
+				}
+				if (i === 0) {
+					content += `<h3 class="py-3 text-center">Nie masz jeszcze żadnych znajomych</h3>`;
+				}
+				content += `</div>`;
+				document.getElementById('content').innerHTML = content;
 
-                hideSpinner();
-            } else {
-                hideSpinner();
-                showHomePage();
-            }
-        }
-    }).catch(function() {
-        hideSpinner();
-        showHomePage();
-    });
+				hideSpinner();
+			} else {
+				hideSpinner();
+				showHomePage();
+			}
+		}
+	}).catch(function() {
+		hideSpinner();
+		showHomePage();
+	});
 }

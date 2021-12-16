@@ -9,10 +9,11 @@ function sendRequest(url, method, message) {
 		};
 		xhr.onerror = reject;
 		xhr.open(method, url);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-		if (message)
+		xhr.setRequestHeader('Content-Type', 'application/json');
+		if (message) {
 			xhr.send(message);
-		else
+		} else {
 			xhr.send();
+		}
 	});
 }
