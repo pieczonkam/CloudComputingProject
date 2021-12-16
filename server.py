@@ -108,14 +108,14 @@ class Users(Resource):
     def get(self, name):
         if 'email' in session:
             if name == '*':
-                query_string = '''MATCH (n:User) WHERE n.email <> '%s' RETURN ID(n) as id, n.fname AS fname, n.lname AS lname''' % (session.get('email'))
+                query_string = '''MATCH (n:User) WHERE n.email <> '%s' RETURN ID(n) as id, n.fname AS fname, n.lname AS lname ORDER BY fname, lname''' % (session.get('email'))
             else:
-                query_string = '''MATCH (n:User) WHERE n.email <> '%s' AND toLower(n.fname) + ' ' + toLower(n.lname) CONTAINS toLower('%s') RETURN ID(n) as id, n.fname AS fname, n.lname AS lname''' % (session.get('email'), name)
+                query_string = '''MATCH (n:User) WHERE n.email <> '%s' AND toLower(n.fname) + ' ' + toLower(n.lname) CONTAINS toLower('%s') RETURN ID(n) as id, n.fname AS fname, n.lname AS lname ORDER BY fname, lname''' % (session.get('email'), name)
         else:
             if name == '*':
-                query_string = '''MATCH (n:User) RETURN ID(n) as id, n.fname AS fname, n.lname AS lname'''
+                query_string = '''MATCH (n:User) RETURN ID(n) as id, n.fname AS fname, n.lname AS lname ORDER BY fname, lname'''
             else:
-                query_string = '''MATCH (n:User) WHERE toLower(n.fname) + ' ' + toLower(n.lname) CONTAINS toLower('%s') RETURN ID(n) as id, n.fname AS fname, n.lname AS lname''' % (name)
+                query_string = '''MATCH (n:User) WHERE toLower(n.fname) + ' ' + toLower(n.lname) CONTAINS toLower('%s') RETURN ID(n) as id, n.fname AS fname, n.lname AS lname ORDER BY fname, lname''' % (name)
 
         db.connect()
         result = db.execute(query_string, with_response=True)
@@ -127,7 +127,7 @@ class Users(Resource):
             else:
                 response = {'success': True}
             for user in result['response']:
-                response[str(user['id'])] = {'fname': user['fname'], 'lname': user['lname']}
+                response[user['fname'] + user['lname'] + str(user['id'])] = {'id': user['id'], 'fname': user['fname'], 'lname': user['lname']}
             return jsonify(response)
         else:
             return jsonify({'success': False})
@@ -161,7 +161,7 @@ class Friends(Resource):
     def get(self, type):
         if 'email' in session:
             if type == 'profile':
-                query_string = '''MATCH (n:User)-[r:IS_FRIEND]->(m:User) WHERE n.email = '%s' RETURN ID(m) AS id, m.fname AS fname, m.lname AS lname''' % (session.get('email'))
+                query_string = '''MATCH (n:User)-[r:IS_FRIEND]->(m:User) WHERE n.email = '%s' RETURN ID(m) AS id, m.fname AS fname, m.lname AS lname ORDER BY fname, lname''' % (session.get('email'))
                 
                 db.connect()
                 result = db.execute(query_string, with_response=True)
@@ -170,9 +170,48 @@ class Friends(Resource):
                 if result['success']:
                     response = {'success': True}
                     for user in result['response']:
-                        response[str(user['id'])] = {'fname': user['fname'], 'lname': user['lname']}
+                        response[user['fname'] + user['lname'] + str(user['id'])] = {'id': user['id'], 'fname': user['fname'], 'lname': user['lname']}
                     return jsonify(response)
                 else:
+                    return jsonify({'success': False})
+            elif type == 'suggestions':
+                suggestions_max = 25
+                query_string = '''MATCH (n:User{email: '%s'})-[:IS_FRIEND*]->(m:User) WHERE m.email <> n.email AND NOT EXISTS( (n)-[:IS_FRIEND]->(m) ) RETURN DISTINCT m''' % (session.get('email'))
+
+                db.connect()
+                result_1 = db.execute(query_string, with_response=True)
+                if result_1['success']:
+                    if len(result_1['response']) < suggestions_max:
+                        query_string = '''MATCH (n:User{email: '%s'}), (m:User) WHERE m.email <> n.email AND NOT EXISTS( (n)-[:IS_FRIEND*]->(m) ) RETURN DISTINCT m''' % (session.get('email'))
+                        result_2 = db.execute(query_string, with_response=True)
+                        db.close()
+
+                        if result_2['success']:
+                            response = {'success': True}
+                            i = 0
+                            for record in result_1['response']:
+                                suggestions_max -= 1
+                                node = record.values()[0]
+                                id = node.id
+                                fname = node.get('fname')
+                                lname = node.get('lname')
+                                response[str(i)] = {'id': id, 'fname': fname, 'lname': lname}
+                                i += 1
+                            for record in result_2['response']:
+                                if suggestions_max <= 0:
+                                    break
+                                suggestions_max -= 1
+                                node = record.values()[0]
+                                id = node.id
+                                fname = node.get('fname')
+                                lname = node.get('lname')
+                                response[str(i)] = {'id': id, 'fname': fname, 'lname': lname}
+                                i += 1
+                            return jsonify(response)
+                        else:
+                            return jsonify({'success': False})
+                else:
+                    db.close()
                     return jsonify({'success': False})
             else:
                 return jsonify({'error': 'Bad request'})

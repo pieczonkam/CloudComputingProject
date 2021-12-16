@@ -100,9 +100,14 @@ function registerUser() {
 function logoutUser() {
 	'use strict';
 
+    showSpinner();
 	sendRequest('/logout', 'GET').then(function() {		
+        hideSpinner()
         showHomePage();
-	}).catch(function() {});
+	}).catch(function() {
+        hideSpinner();
+        showHomePage();
+    });
 }
 
 function editUser() {

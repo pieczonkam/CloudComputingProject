@@ -35,23 +35,14 @@ function showCurrentPage() {
 function showHomePage() {
 	'use strict';
 
+    sessionStorage.setItem('return_from_profile_dest', 'showHomePage()')
 	sessionStorage.setItem('current_page', 'home');
-	sendRequest('/login', 'GET').then(function(result) {
+    showSpinner();
+	sendRequest('/friends/suggestions', 'GET').then(function(result) {
 		var response = JSON.parse(result);
 
-		if (response.logged_in) {
-			document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
-                                                                    <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showProfile(-1)"><i class="fas fa-user"></i>&nbsp;&nbsp;Profil</a>
-                                                                </li>
-                                                                <li class="nav-item me-2">
-                                                                    <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showFriends()"><i class="fas fa-users"></i>&nbsp;&nbsp;Znajomi</a>
-                                                                </li>
-                                                                <li class="nav-item me-2">
-                                                                    <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>&nbsp;&nbsp;Wyloguj się</a>
-                                                                </li>`;
-			document.getElementById('content').innerHTML = ``;
-		} else {
-			document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+		if (response.not_logged_in) {
+            document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
                                                                     <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showLoginForm()"><i class="fas fa-sign-in-alt"></i>&nbsp;&nbsp;Zaloguj się</a>
                                                                 </li>
                                                                 <li class="nav-item me-2">
@@ -60,12 +51,40 @@ function showHomePage() {
 			document.getElementById('content').innerHTML = `<div class="container bg-dark shadow text-white p-5 mt-5 mb-5">
                                                                 <h1 class="text-center">Witaj na MeetUp!<br><br/>Stronie, która pozwoli Ci zawrzeć wiele nowych znajomości!</h1>
                                                             </div>`;
-		}
 
+            hideSpinner();
+        } else {
+            if (response.success) {
+                document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
+                                                                        <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showProfile(-1)"><i class="fas fa-user"></i>&nbsp;&nbsp;Profil</a>
+                                                                    </li>
+                                                                    <li class="nav-item me-2">
+                                                                        <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="showFriends()"><i class="fas fa-users"></i>&nbsp;&nbsp;Znajomi</a>
+                                                                    </li>
+                                                                    <li class="nav-item me-2">
+                                                                        <a class="nav-link" aria-current="page" href="javascript:void(0)" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>&nbsp;&nbsp;Wyloguj się</a>
+                                                                    </li>`;
+
+                var content = `<div class="container bg-dark shadow text-white py-5 my-5">
+                                    <h2 class="pb-4 fw-bold text-uppercase text-center">Proponowani znajomi</h2>`;
+                for (const el in response) {
+                    if (el != 'success') {
+                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el]['id']})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
+                    }
+                }
+                content += `</div>`;
+                document.getElementById('content').innerHTML = content;
+
+                hideSpinner();
+            } else {
+                throw 'Error';
+            }
+        }
 	}).catch(function() {
 		document.getElementById('content').innerHTML = `<div class="container bg-dark shadow p-5 mt-5 mb-5">
                                                             <h1 class="text-center text-danger">Coś poszło nie tak! Proszę spróbować ponownie</h1>
                                                         </div>`;
+        hideSpinner();
 	});
 }
 
@@ -377,15 +396,7 @@ function showFoundUsers() {
                     nmb_of_records_text = 'wynik';
                 }
                 else {
-                    switch(nmb_of_records % 10) {
-                        case 2:
-                        case 3:
-                        case 4:
-                            nmb_of_records_text = 'wyniki';
-                            break;
-                        default:
-                            nmb_of_records_text = 'wyników';
-                    }
+                    nmb_of_records_text = 'wyniki/-ów';
                 }
 
                 document.getElementById('nav-links').innerHTML = `<li class="nav-item me-2">
@@ -402,7 +413,7 @@ function showFoundUsers() {
                                     <h2 class="pb-4 fw-bold text-uppercase text-center">Znaleziono ${nmb_of_records} ${nmb_of_records_text} dla zapytania <i>${name_str}</i></h2>`;
                 for (const el in response) {
                     if (el != 'success' && el != 'logged_in') {
-                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${el})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
+                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el]['id']})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
                     }
                 }
                 content += `</div>`;
@@ -441,7 +452,7 @@ function showFoundUsers() {
                                     <h2 class="pb-4 fw-bold text-uppercase text-center">Znaleziono ${nmb_of_records} ${nmb_of_records_text} dla zapytania <i>${name_str}</i></h2>`;
                 for (const el in response) {
                     if (el != 'success') {
-                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${el})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
+                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el]['id']})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
                     }
                 }
                 content += `</div>`;
@@ -488,7 +499,7 @@ function showFriends() {
                 for (const el in response) {
                     if (el !== 'success') {
                         i++;
-                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${el})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
+                        content += `<a class="link-light" href="javascript:void(0)" onclick="showProfile(${response[el]['id']})"><h3 class="py-3" style="border-bottom: 1px solid rgb(200, 200, 200);">&nbsp;&nbsp;${response[el]['fname']} ${response[el]['lname']}</h3></a>`;
                     }
                 }
                 if (i === 0) {
