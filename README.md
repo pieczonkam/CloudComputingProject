@@ -24,6 +24,6 @@ Simple social network webapp prepared as a project for Cloud Computing classes.
   - HTML
   
 ## Screenshots
-<img src="/screenshots/profile.jpg" width="800" height="550" />
-<img src="/screenshots/register_user.jpg" width="800" height="550" />
-<img src="/screenshots/find_users.jpg" width="800" height="550" />
+<img src="/screenshots/profile.jpg" width="800" height="450" />
+<img src="/screenshots/register_form.jpg" width="800" height="450" />
+<img src="/screenshots/find_users.jpg" width="800" height="450" />
